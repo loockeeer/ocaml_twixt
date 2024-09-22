@@ -1,4 +1,6 @@
 (executable
- (public_name ocaml_twixt)
+ (public_name ocaml_twixt_api)
  (name main)
- (libraries ocaml_twixt))
+ (modules handlers main serverconfig)
+ (libraries ocaml_twixt_lib dream)
+ (preprocess (pps lwt_ppx)))

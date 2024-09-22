@@ -1,26 +1,24 @@
 (lang dune 3.15)
 
-(name ocaml_twixt)
+(name ocaml_twixt_lib)
 
 (generate_opam_files true)
 
 (source
- (github username/reponame))
+ (github ocaml_twixt/api))
 
-(authors "Author Name")
+(authors "loockeeer" "TheoFj")
 
-(maintainers "Maintainer Name")
+(maintainers "loockeeer" "TheoFj")
 
 (license LICENSE)
 
-(documentation https://url/to/documentation)
+(documentation https://github.com/ocaml_twixt)
 
 (package
- (name ocaml_twixt)
- (synopsis "A short synopsis")
- (description "A longer description")
+ (name ocaml_twixt_lib)
+ (synopsis "Ocaml Twixt Library")
+ (description "Twixt Module")
  (depends ocaml dune)
  (tags
-  (topics "to describe" your project)))
-
-; See the complete stanza docs at https://dune.readthedocs.io/en/stable/dune-files.html#dune-project
+  (topics twixt)))

@@ -1,2 +1,2 @@
 (library
- (name ocaml_twixt))
+ (name ocaml_twixt_lib))

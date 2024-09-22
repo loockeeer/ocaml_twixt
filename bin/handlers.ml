@@ -1,0 +1,6 @@
+let login _ = Dream.html "Good morning, world!"
+let register _ =  Dream.html "Good morning, world!"
+let get_leaderboard _ =  Dream.html "Good morning, world!"
+let get_user_by_id _ =  Dream.html "Good morning, world!"
+let delete_self _ =  Dream.html "Good morning, world!"
+let get_game_list _ =  Dream.html "Good morning, world!"
