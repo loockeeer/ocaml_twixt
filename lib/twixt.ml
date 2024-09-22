@@ -18,7 +18,7 @@ let board_create size =
 let allowed_movements = [|( 2, 1); (1,2); (-1,2); (-2,1); (-2,-1); (-1,-2); (1,-2); (2,-1)|] |> Array.map (fun x -> {line=fst x; col=snd x});;
 
 let add_pos p1 p2 =
-  {line=p1.line+p2.line;
+    {line=p1.line+p2.line;
    col=p1.col+p2.col};;
 
 let check_pos board p =
@@ -77,7 +77,7 @@ let check_victory board =
 (* TODO *)
 
 let transfo i =
-  match i with
+    match i with
   |0 -> (fun p -> (fst p, snd p))
   |1 -> (fun p -> (-fst p, snd p))
   |2 -> (fun p -> (-snd p, fst p))
@@ -86,24 +86,11 @@ let transfo i =
   |5 -> (fun p -> (fst p, -snd p))
   |6 -> (fun p -> (snd p, -fst p))
   |7 -> (fun p -> (snd p, fst p))
-  |_ -> failwith "chef???"
+  |_ -> failwith "undefined behavior"
 ;;
 
-let transfo i =
-  match i with
-  |0 -> (fun p -> (fst p, snd p))
-  |1 -> (fun p -> (-fst p, snd p))
-  |2 -> (fun p -> (-snd p, fst p))
-  |3 -> (fun p -> (-snd p, -fst p))
-  |4 -> (fun p -> (-fst p, -snd p))
-  |5 -> (fun p -> (fst p, -snd p))
-  |6 -> (fun p -> (snd p, -fst p))
-  |7 -> (fun p -> (snd p, fst p))
-  |_ -> failwith "chef???"
-;;
-
-let index link_type = (*ya plus court mais nsm*)
-  match link_type with
+let index link_type =
+    match link_type with
   |(2,1)   -> 0
   |(2,-1)  -> 1
   |(1,-2)  -> 2
@@ -112,12 +99,12 @@ let index link_type = (*ya plus court mais nsm*)
   |(-2,1)  -> 5
   |(-1,2)  -> 6
   |(1,2)   -> 7
-  |_ -> failwith "frerot??"
+  |_ -> failwith "undefined behavior"
 ;;
 
 let possible_collisions i =
-  Array.map (fun x -> ((transfo i) (fst x), index ((transfo i) (snd x))))
-  [|((1,-1),(-1,2));
+    Array.map (fun x -> ((transfo i) (fst x), index ((transfo i) (snd x))))
+    [|((1,-1),(-1,2));
     ((1,0), (-1,2));
     ((2,-1),(-1,2));
     ((2,0),(-1,2));
@@ -129,14 +116,14 @@ let possible_collisions i =
 ;;
 
 let check_collision board c1 i =
-  let t = possible_collisions i in
-  let x, y = c1.pos.line, c1.pos.col in
-  let output = ref false in
-  for n=0 to 8 do
-    let p, j = t.(n) in
-    let c = board.cells.(x+fst p).(y+snd p) in
-    if c.links.(j) then output := true
-  done;
+    let t = possible_collisions i in
+    let x, y = c1.pos.line, c1.pos.col in
+    let output = ref false in
+    for n=0 to 8 do
+        let p, j = t.(n) in
+        let c = board.cells.(x+fst p).(y+snd p) in
+        if c.links.(j) then output := true
+        done;
   !output
 ;;
 
@@ -170,7 +157,7 @@ let create_links board cell =
     let ret = Array.make 8 false in
     for i = 0 to 7 do
         ret.(i) <- add_link board cell i
-        done;
+    done;
     ret;;
 
 let place_player board pos player =
@@ -198,8 +185,8 @@ module Journaling = struct
             let board = board_create size in
             for j = 0 to (i-1) do
                 interpret_entry board journal.(j)
-            done;
+    done;
             board
-        );;
+                );;
 
 end
