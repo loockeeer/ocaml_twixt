@@ -18,7 +18,14 @@
 (package
  (name ocaml_twixt_lib)
  (synopsis "Ocaml Twixt Library")
- (description "Twixt Module")
- (depends ocaml dune)
- (tags
-  (topics twixt)))
+ (depends ocaml dune))
+
+(package
+ (name ocaml_twixt_exchange)
+ (synopsis "Ocaml Twixt Exchange")
+ (depends ocaml dune))
+
+(package
+ (name ocaml_twixt_api)
+ (synopsis "Ocaml Twixt API")
+ (depends ocaml dune))

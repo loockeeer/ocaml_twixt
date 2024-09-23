@@ -1,0 +1,4 @@
+(library
+  (public_name ocaml_twixt_exchange)
+  (name ocaml_twixt_exchange)
+  (libraries ocaml_twixt_lib uuidm))

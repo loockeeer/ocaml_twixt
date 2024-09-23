@@ -1,2 +1,3 @@
 (library
+ (public_name ocaml_twixt_lib)
  (name ocaml_twixt_lib))

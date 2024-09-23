@@ -1,6 +1,7 @@
 (executable
  (public_name ocaml_twixt_api)
  (name main)
- (modules handlers main serverconfig)
- (libraries ocaml_twixt_lib dream)
- (preprocess (pps lwt_ppx)))
+ (package ocaml_twixt_api)
+ (modules cache handlers main serverconfig elo store token)
+ (libraries ocaml_twixt_exchange ocaml_twixt_lib dream cryptokit yojson ppx_deriving_yojson.runtime)
+ (preprocess (pps lwt_ppx ppx_deriving_yojson)))

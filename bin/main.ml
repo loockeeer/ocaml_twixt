@@ -1,3 +1,7 @@
+open Ocaml_twixt_lib
+
+let game_cache : (Uuidm.t, (Uuidm.t*Uuidm.t*Twixt.board_t)) Cache.t = Cache.create Serverconfig.cache_ttl Serverconfig.cache_hashtbl_size
+
 let clients : (int, Dream.websocket) Hashtbl.t =
   Hashtbl.create Serverconfig.websocket_pool_hashtbl_size
 
