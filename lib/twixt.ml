@@ -1,15 +1,7 @@
-type pos_t = { line: int; col: int };;
-type player_t = Black | Red | Unowned;;
-type cell_t = {
-    links: bool array;
-    mutable owner: player_t;
-    pos: pos_t;
-};;
-type board_t = {
-    size: int;
-    cells: cell_t array array; (* first coordinate : line, second coordinate : column *)
-    mutable victory: (bool * player_t);
-};;
+type pos_t = {line: int; col: int}
+type player_t = Black | Red | Unowned
+type cell_t = {links: bool array; mutable owner: player_t; pos: pos_t}
+type board_t = {size: int; cells: cell_t array array; mutable victory: bool*player_t}
 
 let board_create size =
     let cells = Array.init_matrix size size (fun i j -> {links= Array.make 8 false;owner= Unowned;pos= {line= i;col= j}}) in
@@ -73,8 +65,6 @@ let check_victory board =
     done;
         (false, Unowned)
     with FastExit x -> (true, x);;
-
-(* TODO *)
 
 let transfo i =
     match i with
@@ -169,24 +159,3 @@ let place_player board pos player =
         board.cells.(pos.line).(pos.col).owner <- player; 
         true
         );;
-
-module Journaling = struct
-    type entry_t = AddPeg of player_t*pos_t | Victory of player_t | AddLink of pos_t*int | RemoveLink of pos_t*int;;
-    type journal_t = entry_t array;;
-    let interpret_entry board entry =
-        match entry with
-        | AddPeg (player, pos) -> place_player board pos player |> ignore
-        | AddLink (pos1, idx) -> add_link board (board.cells.(pos1.line).(pos1.col)) idx |> ignore
-        | RemoveLink (pos1, idx) -> remove_link board (board.cells.(pos1.line).(pos1.col)) idx
-        | Victory player -> board.victory <- (true, player);;
-    let recreate_board size journal i =
-        if i < 0 || i >= Array.length journal then board_create size
-        else (
-            let board = board_create size in
-            for j = 0 to (i-1) do
-                interpret_entry board journal.(j)
-    done;
-            board
-                );;
-
-end
