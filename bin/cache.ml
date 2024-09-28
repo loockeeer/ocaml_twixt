@@ -33,8 +33,9 @@ let encache (_, cache) id data =
 ;;
 
 let decache (_, cache) id = Hashtbl.remove cache id
+let find_opt (_, cache) id = Hashtbl.find_opt cache id
 
-let sync (ttl, cache) =
+let flush (ttl, cache) =
   Hashtbl.filter_map_inplace
     (fun _ payload ->
       if payload.last_access + ttl <= int_time () then None else Some payload)

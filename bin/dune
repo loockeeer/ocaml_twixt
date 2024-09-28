@@ -2,7 +2,7 @@
  (public_name ocaml_twixt_api)
  (name main)
  (package ocaml_twixt_api)
- (modules cache handlers main serverconfig elo store token)
+ (modules cache handlers main serverconfig elo store token gamemanager)
  (libraries
   caqti
   caqti-lwt.unix
@@ -11,6 +11,8 @@
   dream
   cryptokit
   yojson
-  ppx_deriving_yojson.runtime)
+  ppx_deriving_yojson.runtime
+  petrol
+  argon2)
  (preprocess
   (pps lwt_ppx ppx_deriving_yojson)))

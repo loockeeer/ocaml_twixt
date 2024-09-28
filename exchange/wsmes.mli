@@ -25,3 +25,5 @@ type messages_t =
   | DrawAsked
 
 type complete_message_t = messages_t corr
+
+val parse : string -> complete_message_t option

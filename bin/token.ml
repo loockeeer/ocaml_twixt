@@ -1,4 +1,5 @@
 open Cryptokit
+open Ocaml_twixt_exchange.Uuidm_ex
 
 module Jwt = struct
   let compute_signature header payload secret =
@@ -49,28 +50,30 @@ module SessionToken = struct
   type token_type_t =
     | Access
     | Refresh
+  [@@deriving yojson]
 
   type payload_t =
     { token_type : token_type_t
     ; expires_at : int
-    ; corr_id : Uuidm.t
+    ; sess_id : Uuidm.t
     ; user_id : Uuidm.t
+    ; rot : int
     }
   [@@deriving yojson]
 
   type result_t =
     | Malformed
-    | TokenExpired
+    | Expired
     | Ok of payload_t
 
-  let create_token_pair ttl1 ttl2 corr uid secret =
+  let create_token_pair ~access_ttl ~refresh_ttl ~sess_id ~user_id ~secret ~rotation =
     let access_payload =
-      { token_type = Access; expires_at = ttl1; corr_id = corr; user_id = uid }
+      { token_type = Access; expires_at = access_ttl; sess_id; user_id; rot = 0 }
       |> payload_t_to_yojson
       |> Yojson.Safe.to_string
     in
     let refresh_payload =
-      { token_type = Refresh; expires_at = ttl2; corr_id = corr; user_id = uid }
+      { token_type = Refresh; expires_at = refresh_ttl; rot = rotation; sess_id; user_id }
       |> payload_t_to_yojson
       |> Yojson.Safe.to_string
     in
@@ -82,7 +85,7 @@ module SessionToken = struct
     | Some tbd ->
       (match payload_t_of_yojson tbd with
        | Ok payload ->
-         if payload.expires_at <= Cache.int_time () then TokenExpired else Ok payload
+         if payload.expires_at <= Cache.int_time () then Expired else Ok payload
        | Error _ -> Malformed)
     | None -> Malformed
   ;;

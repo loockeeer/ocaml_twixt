@@ -1,10 +1,16 @@
 open Ocaml_twixt_lib
+open Ocaml_twixt_exchange
 
-let game_cache : (Uuidm.t, Uuidm.t * Uuidm.t * Twixt.board_t) Cache.t =
-  Cache.create Serverconfig.cache_ttl Serverconfig.cache_hashtbl_size
+let game_manager =
+  Gamemanager.create Serverconfig.cache_ttl Serverconfig.cache_hashtbl_size
 ;;
 
-let clients : (int, Dream.websocket) Hashtbl.t =
+type client_track_t =
+  { sess_id : Uuidm.t
+  ; expiry : int
+  }
+
+let clients : (int, client_track_t option * Dream.websocket) Hashtbl.t =
   Hashtbl.create Serverconfig.websocket_pool_hashtbl_size
 ;;
 
@@ -12,25 +18,24 @@ let track =
   let last_client_id = ref 0 in
   fun websocket ->
     last_client_id := !last_client_id + 1;
-    Hashtbl.replace clients !last_client_id websocket;
+    Hashtbl.replace clients !last_client_id (None, websocket);
     !last_client_id
 ;;
 
 let forget client_id = Hashtbl.remove clients client_id
-
-let send message =
-  Hashtbl.to_seq_values clients
-  |> List.of_seq
-  |> Lwt_list.iter_p (fun client -> Dream.send client message)
-;;
 
 let handle_client client =
   let client_id = track client in
   let rec loop () =
     match%lwt Dream.receive client with
     | Some message ->
-      let%lwt () = send message in
-      loop ()
+      (match Wsmes.parse message with
+       | Some mes ->
+         let%lwt () = Handlers.websocket client mes in
+         loop ()
+       | None ->
+         let%lwt () = Dream.send client "wtf" in
+         loop ())
     | None ->
       forget client_id;
       Dream.close_websocket client

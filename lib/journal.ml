@@ -17,12 +17,13 @@ let interpret_entry board entry =
 ;;
 
 let recreate_board size journal i =
-  if i < 0 || i >= Array.length journal
-  then board_create size
-  else (
-    let board = board_create size in
-    for j = 0 to i - 1 do
-      interpret_entry board journal.(j)
-    done;
-    board)
+  let is = if i < 0 || i >= Array.length journal then Array.length journal - 1 else i in
+  let board = board_create size in
+  for j = 0 to is do
+    interpret_entry board journal.(j)
+  done;
+  board
 ;;
+
+let to_string (_ : t) = ""
+let of_string (_ : string) = Some [||]
