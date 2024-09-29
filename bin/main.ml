@@ -47,7 +47,9 @@ let () =
   Dream.run ~interface:Serverconfig.listen_interface ~port:Serverconfig.listen_port
   @@ Dream.logger
   @@ Dream.router
-       [ Dream.post "/login" Handlers.login
+       [ Dream.post
+           "/login"
+           (Handlers.json_receiver Types.login_request_doc_of_yojson Handlers.login)
        ; Dream.post "/register" Handlers.register
        ; Dream.get "/leaderboard" Handlers.get_leaderboard
        ; Dream.get "/users/:id" Handlers.get_user_by_id

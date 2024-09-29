@@ -1,4 +1,6 @@
 (library
  (public_name ocaml_twixt_exchange)
  (name ocaml_twixt_exchange)
- (libraries ocaml_twixt_lib uuidm))
+ (libraries ocaml_twixt_lib uuidm ppx_yojson_conv yojson)
+ (preprocess
+  (pps ppx_yojson_conv)))

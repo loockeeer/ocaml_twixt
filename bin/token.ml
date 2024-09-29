@@ -1,5 +1,6 @@
 open Cryptokit
 open Ocaml_twixt_exchange.Uuidm_ex
+open Ppx_yojson_conv_lib.Yojson_conv.Primitives
 
 module Jwt = struct
   let compute_signature header payload secret =
@@ -69,12 +70,12 @@ module SessionToken = struct
   let create_token_pair ~access_ttl ~refresh_ttl ~sess_id ~user_id ~secret ~rotation =
     let access_payload =
       { token_type = Access; expires_at = access_ttl; sess_id; user_id; rot = 0 }
-      |> payload_t_to_yojson
+      |> yojson_of_payload_t
       |> Yojson.Safe.to_string
     in
     let refresh_payload =
       { token_type = Refresh; expires_at = refresh_ttl; rot = rotation; sess_id; user_id }
-      |> payload_t_to_yojson
+      |> yojson_of_payload_t
       |> Yojson.Safe.to_string
     in
     Jwt.make header access_payload secret, Jwt.make header refresh_payload secret
@@ -83,10 +84,8 @@ module SessionToken = struct
   let parse_token token secret =
     match Jwt.parse_opt token secret with
     | Some tbd ->
-      (match payload_t_of_yojson tbd with
-       | Ok payload ->
-         if payload.expires_at <= Cache.int_time () then Expired else Ok payload
-       | Error _ -> Malformed)
+      let payload = payload_t_of_yojson tbd in
+      if payload.expires_at <= Cache.int_time () then Expired else Ok payload
     | None -> Malformed
   ;;
 end

@@ -11,8 +11,8 @@
   dream
   cryptokit
   yojson
-  ppx_deriving_yojson.runtime
+  ppx_yojson_conv
   petrol
   argon2)
  (preprocess
-  (pps lwt_ppx ppx_deriving_yojson)))
+  (pps lwt_ppx ppx_yojson_conv)))

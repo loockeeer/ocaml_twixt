@@ -150,14 +150,14 @@ module User = struct
     |> Petrol.exec (Database.get ())
   ;;
 
-  let user_password_check ~user_id ~password:pwd =
-    Query.select Expr.[ S.password ] ~from:S.table
-    |> Query.where Expr.(S.id = s (Uuidm.to_string user_id))
+  let login ~email ~password =
+    Query.select Expr.[ S.password; S.id ] ~from:S.table
+    |> Query.where Expr.(S.email = s email)
     |> Request.make_one
     |> Petrol.find (Database.get ())
-    |> Lwt_result.map (fun (true_password, ()) ->
-      match check_password true_password pwd with
-      | Result.Ok v -> v
+    |> Lwt_result.map (fun (true_password, (id, ())) ->
+      match check_password true_password password with
+      | Result.Ok v -> Option.get (Uuidm.of_string id), v
       | Result.Error _ -> failwith "failed to check password :/")
   ;;
 
@@ -248,6 +248,23 @@ module Game = struct
     | Running
     | Waiting
 
+  let int_of_status s =
+    match s with
+    | BWin -> 0
+    | RWin -> 1
+    | Running -> 2
+    | Waiting -> 3
+  ;;
+
+  let status_of_int i =
+    match i with
+    | 0 -> BWin
+    | 1 -> RWin
+    | 2 -> Running
+    | 3 -> Waiting
+    | _ -> failwith "bad argument"
+  ;;
+
   type t =
     { id : Uuidm.t
     ; red : Uuidm.t (* red player user id *)
@@ -258,7 +275,47 @@ module Game = struct
     ; size : int
     }
 
-  let create ~id ~red ~black = ()
+  module S = struct
+    let table, Expr.[ id; red; black; repr; status; resigned; size ] =
+      VersionedSchema.declare_table
+        Database.schema
+        ~name:"user"
+        Schema.
+          [ field "id" ~ty:Type.text ~constraints:[ primary_key () ]
+          ; field
+              "red"
+              ~ty:Type.text
+              ~constraints:
+                [ foreign_key ~table:User.S.table ~columns:Expr.[ User.S.id ] () ]
+          ; field
+              "black"
+              ~ty:Type.text
+              ~constraints:
+                [ foreign_key ~table:User.S.table ~columns:Expr.[ User.S.id ] () ]
+          ; field "repr" ~ty:Type.text
+          ; field "status" ~ty:Type.int
+          ; field "resigned" ~ty:Type.bool
+          ; field "size" ~ty:Type.int
+          ]
+    ;;
+  end
+
+  let create ~id ~red ~black =
+    Query.insert
+      ~table:S.table
+      ~values:
+        Expr.
+          [ S.id := s (Uuidm.to_string id)
+          ; S.red := s (Uuidm.to_string red)
+          ; S.black := s (Uuidm.to_string black)
+          ; S.repr := s ""
+          ; S.status := i (int_of_status Waiting)
+          ; S.resigned := bl false
+          ; S.size := i 24
+          ]
+    |> Request.make_zero
+    |> Petrol.exec (Database.get ())
+  ;;
 
   let fetch id =
     Some
@@ -281,5 +338,5 @@ module ChatEntry = struct
     ; sent_at : int
     }
 
-  let create ~user_id ~message ~game_id ~sent_at = ()
+  let[@warning "-27"] create ~user_id ~message ~game_id ~sent_at = failwith "wip"
 end

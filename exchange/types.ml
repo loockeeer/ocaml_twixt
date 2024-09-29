@@ -1,4 +1,5 @@
 open Ocaml_twixt_lib
+open Ppx_yojson_conv_lib.Yojson_conv.Primitives
 
 type shortuser_t =
   { id : Uuidm.t
@@ -24,3 +25,17 @@ type game_t =
   ; size : int
   ; journal : Journal.t
   }
+
+type error_doc = { error : string } [@@deriving yojson]
+
+type login_request_doc =
+  { email : string
+  ; password : string
+  }
+[@@deriving yojson]
+
+type login_response_doc =
+  { access_token : string
+  ; refresh_token : string
+  }
+[@@deriving yojson]
