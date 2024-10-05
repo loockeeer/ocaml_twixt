@@ -1,8 +1,8 @@
 open Petrol
 open Petrol.Postgres
+open Ocaml_twixt_exchange
 
 let current_version = VersionedSchema.version [ 1; 0; 0 ]
-let generate_id = Uuidm.v4_gen (Random.State.make_self_init ())
 
 let make_salt size =
   String.init size (fun _ -> Random.int_in_range ~min:0 ~max:255 |> Char.chr)
@@ -79,7 +79,7 @@ module User = struct
   end
 
   type t =
-    { id : Uuidm.t
+    { id : Id.t
     ; username : string
     ; email : string
     ; elo : int
@@ -87,7 +87,7 @@ module User = struct
     }
 
   let create ~username:uname ~email:eml ~password:pwd =
-    let uid = generate_id () in
+    let uid = Id.generate () in
     let hashed_password =
       match hash_password pwd with
       | Result.Ok (_, encoded) -> encoded
@@ -97,7 +97,7 @@ module User = struct
       ~table:S.table
       ~values:
         Expr.
-          [ S.id := s (Uuidm.to_string uid)
+          [ S.id := s (Id.to_string uid)
           ; S.username := s uname
           ; S.email := s eml
           ; S.password := s hashed_password
@@ -119,21 +119,21 @@ module User = struct
           ; S.elo := i 0
           ; S.deleted := bl true
           ]
-    |> Query.where Expr.(S.id = s (Uuidm.to_string user_id))
+    |> Query.where Expr.(S.id = s (Id.to_string user_id))
     |> Request.make_zero
     |> Petrol.exec (Database.get ())
   ;;
 
   let update_profile ~user_id ~username:nname =
     Query.update ~table:S.table ~set:Expr.[ S.username := s nname ]
-    |> Query.where Expr.(S.id = s (Uuidm.to_string user_id))
+    |> Query.where Expr.(S.id = s (Id.to_string user_id))
     |> Request.make_zero
     |> Petrol.exec (Database.get ())
   ;;
 
   let update_elo ~user_id ~elo:newelo =
     Query.update ~table:S.table ~set:Expr.[ S.elo := i newelo ]
-    |> Query.where Expr.(S.id = s (Uuidm.to_string user_id))
+    |> Query.where Expr.(S.id = s (Id.to_string user_id))
     |> Request.make_zero
     |> Petrol.exec (Database.get ())
   ;;
@@ -145,7 +145,7 @@ module User = struct
       | Error _ -> failwith "failed to hash"
     in
     Query.update ~table:S.table ~set:Expr.[ S.password := s hashed_password ]
-    |> Query.where Expr.(S.id = s (Uuidm.to_string user_id))
+    |> Query.where Expr.(S.id = s (Id.to_string user_id))
     |> Request.make_zero
     |> Petrol.exec (Database.get ())
   ;;
@@ -157,13 +157,13 @@ module User = struct
     |> Petrol.find (Database.get ())
     |> Lwt_result.map (fun (true_password, (id, ())) ->
       match check_password true_password password with
-      | Result.Ok v -> Option.get (Uuidm.of_string id), v
+      | Result.Ok v -> Option.get (Id.of_string id), v
       | Result.Error _ -> failwith "failed to check password :/")
   ;;
 
   let fetch ~user_id =
     Query.select Expr.[ S.username; S.email; S.elo; S.deleted ] ~from:S.table
-    |> Query.where Expr.(S.id = s (Uuidm.to_string user_id))
+    |> Query.where Expr.(S.id = s (Id.to_string user_id))
     |> Request.make_one
     |> Petrol.find (Database.get ())
     |> Lwt_result.map (fun (username, (email, (elo, (deleted, ())))) ->
@@ -173,8 +173,8 @@ end
 
 module Session = struct
   type t =
-    { user_id : Uuidm.t
-    ; sess_id : Uuidm.t
+    { user_id : Id.t
+    ; sess_id : Id.t
     ; current_rotation : int
     ; revoked : bool
     }
@@ -202,8 +202,8 @@ module Session = struct
       ~table:S.table
       ~values:
         Expr.
-          [ S.user_id := s (Uuidm.to_string user_id)
-          ; S.sess_id := s (Uuidm.to_string sess_id)
+          [ S.user_id := s (Id.to_string user_id)
+          ; S.sess_id := s (Id.to_string sess_id)
           ; S.current_rotation := i 0
           ; S.revoked := bl false
           ]
@@ -215,62 +215,35 @@ module Session = struct
     Query.update
       ~table:S.table
       ~set:Expr.[ S.current_rotation := S.current_rotation + i 1 ]
-    |> Query.where Expr.(S.sess_id = s (Uuidm.to_string sess_id))
+    |> Query.where Expr.(S.sess_id = s (Id.to_string sess_id))
     |> Request.make_zero
     |> Petrol.exec (Database.get ())
   ;;
 
   let revoke ~sess_id =
     Query.update ~table:S.table ~set:Expr.[ S.revoked := bl true ]
-    |> Query.where Expr.(S.sess_id = s (Uuidm.to_string sess_id))
+    |> Query.where Expr.(S.sess_id = s (Id.to_string sess_id))
     |> Request.make_zero
     |> Petrol.exec (Database.get ())
   ;;
 
   let fetch ~sess_id =
     Query.select Expr.[ S.user_id; S.current_rotation; S.revoked ] ~from:S.table
-    |> Query.where Expr.(S.sess_id = s (Uuidm.to_string sess_id))
+    |> Query.where Expr.(S.sess_id = s (Id.to_string sess_id))
     |> Request.make_one
     |> Petrol.find (Database.get ())
     |> Lwt_result.map (fun (user_id, (current_rotation, (revoked, ()))) ->
-      { sess_id
-      ; user_id = Option.get (Uuidm.of_string user_id)
-      ; current_rotation
-      ; revoked
-      })
+      { sess_id; user_id = Option.get (Id.of_string user_id); current_rotation; revoked })
   ;;
 end
 
 module Game = struct
-  type status_t =
-    | BWin
-    | RWin
-    | Running
-    | Waiting
-
-  let int_of_status s =
-    match s with
-    | BWin -> 0
-    | RWin -> 1
-    | Running -> 2
-    | Waiting -> 3
-  ;;
-
-  let status_of_int i =
-    match i with
-    | 0 -> BWin
-    | 1 -> RWin
-    | 2 -> Running
-    | 3 -> Waiting
-    | _ -> failwith "bad argument"
-  ;;
-
   type t =
-    { id : Uuidm.t
-    ; red : Uuidm.t (* red player user id *)
-    ; black : Uuidm.t (* black player user id *)
+    { id : Id.t
+    ; red : Id.t (* red player user id *)
+    ; black : Id.t (* black player user id *)
     ; repr : string
-    ; status : status_t
+    ; status : Types.Game.status_t
     ; resigned : bool
     ; size : int
     }
@@ -305,11 +278,11 @@ module Game = struct
       ~table:S.table
       ~values:
         Expr.
-          [ S.id := s (Uuidm.to_string id)
-          ; S.red := s (Uuidm.to_string red)
-          ; S.black := s (Uuidm.to_string black)
+          [ S.id := s (Id.to_string id)
+          ; S.red := s (Id.to_string red)
+          ; S.black := s (Id.to_string black)
           ; S.repr := s ""
-          ; S.status := i (int_of_status Waiting)
+          ; S.status := i (Types.Game.int_of_status Types.Game.Waiting)
           ; S.resigned := bl false
           ; S.size := i 24
           ]
@@ -317,24 +290,31 @@ module Game = struct
     |> Petrol.exec (Database.get ())
   ;;
 
-  let fetch id =
-    Some
-      { id
-      ; red = Uuidm.v4_gen (Random.State.make_self_init ()) ()
-      ; black = Uuidm.v4_gen (Random.State.make_self_init ()) ()
-      ; repr = ""
-      ; status = Waiting
-      ; resigned = false
-      ; size = 24
-      }
+  let fetch ~id =
+    Query.select
+      Expr.[ S.id; S.red; S.black; S.repr; S.status; S.resigned; S.size ]
+      ~from:S.table
+    |> Query.where Expr.(S.id = s (Id.to_string id))
+    |> Request.make_one
+    |> Petrol.find (Database.get ())
+    |> Lwt_result.map
+         (fun (id, (red, (black, (repr, (status, (resigned, (size, ()))))))) ->
+            { id = Id.of_string id |> Option.get
+            ; black = Id.of_string black |> Option.get
+            ; red = Id.of_string red |> Option.get
+            ; repr
+            ; status = Types.Game.status_of_int status
+            ; resigned
+            ; size
+            })
   ;;
 end
 
 module ChatEntry = struct
   type t =
-    { user_id : Uuidm.t
+    { user_id : Id.t
     ; message : string
-    ; game_id : Uuidm.t
+    ; game_id : Id.t
     ; sent_at : int
     }
 

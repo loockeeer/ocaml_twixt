@@ -1,6 +1,7 @@
+open Ocaml_twixt_lib
 open Ocaml_twixt_exchange
 
-let[@warning "-32"] game_manager =
+let game_manager =
   Gamemanager.create Serverconfig.cache_ttl Serverconfig.cache_hashtbl_size
 ;;
 
@@ -11,17 +12,12 @@ let handle_client client =
   let rec loop () =
     match%lwt Dream.receive client with
     | Some message ->
-      (try
-         let mes = Wsmes.of_json message in
-         let%lwt () = Handlers.websocket client (client_id, conn_manager) mes in
+      (match Wsmes.parse message with
+       | Some mes ->
+         let%lwt () = Handlers.websocket client (client_id, clients) mes in
          loop ()
-       with
-       | Yojson.Json_error d ->
-         let%lwt () =
-           Wsmes.{ data = Wsmes.RNotOk d; id = None }
-           |> Wsmes.json_of
-           |> Dream.send client
-         in
+       | None ->
+         let%lwt () = Handlers.wsend_error "invalid json" in
          loop ())
     | None ->
       Handlers.ConnManager.forget conn_manager client_id;

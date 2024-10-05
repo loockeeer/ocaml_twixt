@@ -1,20 +1,21 @@
 open Ocaml_twixt_lib
+open Ocaml_twixt_exchange
 
 type cached_game_t =
   { game_info : Store.Game.t
   ; board : Twixt.board_t
   }
 
-type t = (Uuidm.t, cached_game_t) Cache.t
+type t = (Id.t, cached_game_t) Cache.t
 
 let create = Cache.create
 
 let fetch_game_opt (manager : t) id =
   match Cache.find_opt manager id with
-  | Some x -> Some x.data
+  | Some x -> Lwt.return (Some x.data)
   | None ->
-    (match Store.Game.fetch id with
-     | Some x ->
+    (match%lwt Store.Game.fetch ~id with
+     | Ok x ->
        let cg =
          { game_info = x
          ; board =
@@ -25,6 +26,6 @@ let fetch_game_opt (manager : t) id =
          }
        in
        Cache.encache manager id cg;
-       Some cg
-     | None -> None)
+       Lwt.return (Some cg)
+     | Error _ -> Lwt.return None)
 ;;

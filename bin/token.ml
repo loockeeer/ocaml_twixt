@@ -1,5 +1,5 @@
 open Cryptokit
-open Ocaml_twixt_exchange.Uuidm_ex
+open Ocaml_twixt_exchange
 open Ppx_yojson_conv_lib.Yojson_conv.Primitives
 
 module Jwt = struct
@@ -56,8 +56,8 @@ module SessionToken = struct
   type payload_t =
     { token_type : token_type_t
     ; expires_at : int
-    ; sess_id : Uuidm.t
-    ; user_id : Uuidm.t
+    ; sess_id : Id.t
+    ; user_id : Id.t
     ; rot : int
     }
   [@@deriving yojson]
