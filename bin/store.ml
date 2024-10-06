@@ -296,18 +296,53 @@ module Game = struct
       ~from:S.table
     |> Query.where Expr.(S.id = s (Id.to_string id))
     |> Request.make_one
-    |> Petrol.find (Database.get ())
-    |> Lwt_result.map
-         (fun (id, (red, (black, (repr, (status, (resigned, (size, ()))))))) ->
-            { id = Id.of_string id |> Option.get
-            ; black = Id.of_string black |> Option.get
-            ; red = Id.of_string red |> Option.get
-            ; repr
-            ; status = Types.Game.status_of_int status
-            ; resigned
-            ; size
-            })
+    |> Petrol.find_opt (Database.get ())
+    |> Lwt_result.map (function
+      | Some (id, (red, (black, (repr, (status, (resigned, (size, ()))))))) ->
+        Some
+          { id = Id.of_string id |> Option.get
+          ; black = Id.of_string black |> Option.get
+          ; red = Id.of_string red |> Option.get
+          ; repr
+          ; status = Types.Game.status_of_int status
+          ; resigned
+          ; size
+          }
+      | None -> None)
   ;;
+
+  module Cache = struct
+    open Ocaml_twixt_lib
+
+    type cached_game_t =
+      { game_info : t
+      ; board : Twixt.board_t
+      ; journal : Journal.t
+      }
+
+    type gc_t = (Id.t, cached_game_t) Cache.t
+
+    let cache : gc_t option ref = ref None
+    let init size ttl = cache := Some (Cache.create size ttl)
+
+    let fetch_opt id =
+      match Cache.find_opt (Option.get !cache) id with
+      | Some x -> Lwt_result.return (Some x.data)
+      | None ->
+        fetch ~id
+        |> Lwt_result.map (fun x ->
+          Option.bind x (fun game_info ->
+            let journal = Option.value (Journal.of_string game_info.repr) ~default:[||] in
+            let cg =
+              { game_info
+              ; board = Journal.recreate_board game_info.size journal (-1)
+              ; journal
+              }
+            in
+            Cache.encache (Option.get !cache) id cg;
+            Some cg))
+    ;;
+  end
 end
 
 module ChatEntry = struct

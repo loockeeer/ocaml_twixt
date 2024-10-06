@@ -2,7 +2,7 @@
  (public_name ocaml_twixt_api)
  (name main)
  (package ocaml_twixt_api)
- (modules cache handlers main serverconfig elo store token gamemanager)
+ (modules cache handlers main serverconfig elo store token)
  (libraries
   caqti
   caqti-lwt.unix

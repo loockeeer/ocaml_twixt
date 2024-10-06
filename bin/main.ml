@@ -1,9 +1,5 @@
 open Ocaml_twixt_exchange
 
-let[@warning "-32"] game_manager =
-  Gamemanager.create Serverconfig.cache_ttl Serverconfig.cache_hashtbl_size
-;;
-
 let conn_manager = Handlers.ConnManager.create ()
 
 let handle_client client =

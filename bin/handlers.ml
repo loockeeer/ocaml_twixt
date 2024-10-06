@@ -1,4 +1,5 @@
 open Ocaml_twixt_exchange
+open Ocaml_twixt_lib
 
 let send_error ?(status = `Bad_Request) content =
   Types.{ error = content }
@@ -156,7 +157,29 @@ end
 
 let websocket client (cid, cmgr) (message : Wsmes.complete_message) =
   match message.data with
-  | Wsmes.QBoard -> Dream.send client "hi"
+  | Wsmes.QBoard ->
+    (match ConnManager.get_track cmgr cid with
+     | None, _ ->
+       Wsmes.{ data = Wsmes.RNotOk "not subscribed to any board"; id = message.id }
+       |> Wsmes.json_of
+       |> Dream.send client
+     | Some gid, _ ->
+       (match%lwt Store.Game.Cache.fetch_opt gid with
+        | Ok (Some cg) ->
+          Wsmes.
+            { data = Wsmes.RBoard (cg.board.size, Journal.to_string cg.journal)
+            ; id = message.id
+            }
+          |> Wsmes.json_of
+          |> Dream.send client
+        | Ok None ->
+          Wsmes.{ data = Wsmes.RNotOk "unknown game"; id = message.id }
+          |> Wsmes.json_of
+          |> Dream.send client
+        | Error _ ->
+          Wsmes.{ data = Wsmes.RNotOk "internal server error"; id = message.id }
+          |> Wsmes.json_of
+          |> Dream.send client))
   | Wsmes.QChatHistory _ -> Dream.send client "hi"
   | Wsmes.MChatSend _ -> Dream.send client "hi"
   | Wsmes.MGameAction _ -> Dream.send client "hi"
